@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Dashboard from "./pages/Dashboard/dashboard";
+import Dashboard from "./pages/Dashboard/Dashboard";
 import Outreach from "./pages/Outreach/outreach";
 import Tasks from "./pages/Tasks/tasks";
 import Posts from "./pages/Posts/Posts";
