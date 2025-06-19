@@ -23,11 +23,11 @@ const Admin = () => {
 
   useEffect(() => {
     if (user.email === 'gavin@gcndigital.com') {
-      fetch('http://localhost:5050/api/admin/metrics')
-        .then(res => res.json())
+      fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/metrics`)
+      .then(res => res.json())
         .then(data => setMetrics(data));
 
-      fetch('http://localhost:5050/api/users')
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users`)
         .then(res => res.json())
         .then(data => setUsers(data));
     }
@@ -35,7 +35,7 @@ const Admin = () => {
 
   const handleAssignTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:5050/api/tasks', {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...taskDetails, createdBy: user.email }),
@@ -48,7 +48,7 @@ const Admin = () => {
 
   const handlePostAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:5050/api/announcements', {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/announcements`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: announcement, author: 'Admin' }),

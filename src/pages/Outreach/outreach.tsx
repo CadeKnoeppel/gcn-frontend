@@ -29,7 +29,7 @@ const Outreach = () => {
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
   const fetchLeads = async () => {
-    const res = await fetch(`http://localhost:5050/api/leads?user=${currentUser.name}`);
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/leads?user=${currentUser.name}`);
     const data: Lead[] = await res.json();
     setLeads(data);
   };
@@ -68,7 +68,7 @@ const Outreach = () => {
     };
 
     try {
-      const res = await fetch(`http://localhost:5050/api/leads/${lead._id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/leads/${lead._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedLead),
@@ -88,8 +88,8 @@ const Outreach = () => {
       });
 
       // ✅ Update dashboard counter
-      fetch(`http://localhost:5050/api/leads/daily-completed?email=${currentUser.email}`)
-        .then(res => res.json())
+      fetch(`${import.meta.env.VITE_API_BASE_URL}/api/leads/daily-completed?email=${currentUser.email}`)
+      .then(res => res.json())
         .then(data => setDailyLeads(data.count || 0));
     } catch (err) {
       console.error("❌ Failed to update lead:", err);

@@ -19,8 +19,8 @@ const Tasks = () => {
 
   useEffect(() => {
     if (!storedUser?.email) return;
-    fetch(`http://localhost:5050/api/tasks?email=${storedUser.email}`)
-      .then(res => res.json())
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks?email=${storedUser.email}`)
+    .then(res => res.json())
       .then(data => setTasks(data));
   }, []);
 
@@ -33,7 +33,7 @@ const Tasks = () => {
       createdBy: storedUser.email,
     };
 
-    const res = await fetch("http://localhost:5050/api/tasks", {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(taskData),
@@ -52,7 +52,7 @@ const Tasks = () => {
     setFadeIds(prev => [...prev, id]);
 
     setTimeout(async () => {
-      const res = await fetch(`http://localhost:5050/api/tasks/${id}/complete`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks/${id}/complete`, {
         method: "PATCH",
       });
 

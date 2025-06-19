@@ -16,8 +16,8 @@ const Dashboard = () => {
       setUserName(storedUser.name);
 
       // Fetch task count
-      fetch(`http://localhost:5050/api/tasks/due?email=${storedUser.email}`)
-        .then((res) => res.json())
+      fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks/due?email=${storedUser.email}`)
+      .then((res) => res.json())
         .then((data) => setTasksDue(data.count || 0))
         .catch((err) => console.error("Error fetching tasks:", err));
     }
@@ -47,14 +47,14 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:5050/api/announcements")
-      .then((res) => res.json())
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/announcements`)
+    .then((res) => res.json())
       .then((data) => setAnnouncements(data));
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:5050/api/posts")
-      .then((res) => res.json())
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/posts`)
+    .then((res) => res.json())
       .then((data) => setRecentPosts(data.slice(0, 2)));
   }, []);
 

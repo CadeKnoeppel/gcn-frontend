@@ -11,7 +11,7 @@ const LoginForm = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch('http://localhost:5050/api/users/login', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -28,7 +28,7 @@ const LoginForm = () => {
       localStorage.setItem('loginStart', new Date().toISOString());
 
       // 🔥 Start a new session and store the sessionId
-      const sessionRes = await fetch('http://localhost:5050/api/sessions/start', {
+      const sessionRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/sessions/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userEmail: data.email })
