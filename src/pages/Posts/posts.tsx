@@ -19,8 +19,8 @@ const Posts = () => {
 
   useEffect(() => {
     const fetchPosts = () => {
-      fetch("http://localhost:5050/api/posts")
-        .then((res) => res.json())
+      fetch(`${import.meta.env.VITE_API_BASE_URL}/api/posts`)
+      .then((res) => res.json())
         .then((data) => {
           setPosts(data);
           setFiltered(data);
@@ -62,7 +62,7 @@ const Posts = () => {
   const handleSubmit = async () => {
     if (!newPost.title || !newPost.author || !newPost.content) return;
 
-    const res = await fetch("http://localhost:5050/api/posts", {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/posts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newPost),
