@@ -6,7 +6,7 @@ interface Lead {
   _id: string;
   Company: string;
   contactName: string;
-  website: string;
+  website: string;          // ← holds the email today
   industry: string;
   contacted: boolean;
   contactedBy: string;
@@ -17,114 +17,147 @@ interface Lead {
   contactedAt?: string;
 }
 
+const EMAIL_BODY = (firstName: string) =>
+  `Hi ${firstName},
+
+Hiring and training an in-house marketing team is a big lift—especially when your time and budget are limited.
+
+That’s where GCN Digital steps in. We’re a small, Wisconsin-based team of 5 experts, offering custom, full-service digital marketing for growing businesses—without the costly overhead.
+
+Our services include:
+🎯 Paid Ads (Google, Meta, LinkedIn & more)
+🖥 Website Design & Optimization
+📱 Social Media Management
+🎨 Graphic Design
+🎥 Video Filming & Editing
+✉️ Email Marketing
+➕ And more
+
+With every partnership, you’ll get:
+📊 Transparent reporting so you know exactly what's working
+🤝 Personal, Midwest-based support that feels like an extension of your team
+🔁 Fast turnarounds, clear communication, and strategies tailored to your goals
+
+If any or all of these sound like something that could help your business, reach out today and let’s build something smart together.
+
+Let's Get In Touch
+
+Warm regards,`;
+
 const Outreach = () => {
   const { setDailyLeads } = useLeadsContext();
+
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [draftLeads, setDraftLeads] = useState<{ [id: string]: Partial<Lead> }>({});
   const [notes, setNotes] = useState<{ [id: string]: string }>({});
   const [visibleCount, setVisibleCount] = useState(6);
-  const [filterByContactedBy, setFilterByContactedBy] = useState("All");
+
+  /* --------- filters / search --------- */
   const [filterByStatus, setFilterByStatus] = useState("Not Contacted");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateRange, setDateRange] = useState<"Any" | "7" | "30">("Any");
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
+  /* --------- fetch & auto-assign leads --------- */
   const fetchLeads = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/leads?user=${currentUser.name}`);
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/leads?user=${currentUser.name}&limit=50`
+    );
     const data: Lead[] = await res.json();
     setLeads(data);
   };
 
   useEffect(() => {
     fetchLeads();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.name]);
 
-  const openGmailPopup = (lead: Lead) => {
-    const subject = encodeURIComponent("Outreach from GCN");
-    const body = encodeURIComponent(`Hi ${lead.contactName},`);
+  /* --------- Gmail popup --------- */
+  const openGmailPopup = async (lead: Lead) => {
+    const firstName = lead.contactName.split(" ")[0];
+    const subject = encodeURIComponent("Let’s Build Something Smart Together");
+    const body = encodeURIComponent(EMAIL_BODY(firstName));
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${lead.website}&su=${subject}&body=${body}`;
-    window.open(gmailUrl, "gmailPopup", "width=700,height=600");
+
+    window.open(gmailUrl, "_blank", "width=700,height=600");
+
+    /* instantly mark contacted + credit */
+    await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/leads/${lead._id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contacted: true,
+        contactedBy: currentUser.name,
+        contactedEmail: currentUser.email,
+        contactedAt: new Date().toISOString(),
+      }),
+    });
+
+    /* refresh list + dashboard counter */
+    fetchLeads();
+    fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/leads/daily-completed?email=${currentUser.email}`
+    )
+      .then((r) => r.json())
+      .then((d) => setDailyLeads(d.count || 0));
   };
 
-  const handleDraftChange = (leadId: string, field: keyof Lead, value: any) => {
-    setDraftLeads(prev => ({
-      ...prev,
-      [leadId]: {
-        ...prev[leadId],
-        [field]: value
-      }
-    }));
-  };
-
-  const handleSave = async (lead: Lead) => {
-    const logEntry = notes[lead._id]?.trim();
-    const draft = draftLeads[lead._id] || {};
-
-    const updatedLead: Lead = {
-      ...lead,
-      ...draft,
-      contactedEmail: currentUser.email,
-      contactedAt: new Date().toISOString(),
-      contactLog: logEntry ? [...(lead.contactLog || []), logEntry] : lead.contactLog,
-    };
-
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/leads/${lead._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedLead),
-      });
-
-      await res.json();
-
-      // ✅ Re-fetch the whole list so filtering works correctly
-      await fetchLeads();
-
-      // Reset local draft/notes for that lead
-      setNotes(prev => ({ ...prev, [lead._id]: "" }));
-      setDraftLeads(prev => {
-        const newDraft = { ...prev };
-        delete newDraft[lead._id];
-        return newDraft;
-      });
-
-      // ✅ Update dashboard counter
-      fetch(`${import.meta.env.VITE_API_BASE_URL}/api/leads/daily-completed?email=${currentUser.email}`)
-      .then(res => res.json())
-        .then(data => setDailyLeads(data.count || 0));
-    } catch (err) {
-      console.error("❌ Failed to update lead:", err);
-    }
-  };
-
+  /* --------- client-side filters --------- */
   const filteredLeads = leads.filter((lead) => {
-    const byContact =
-      filterByContactedBy === "All" || lead.contactedBy === filterByContactedBy;
+    /* status */
     const byStatus =
       filterByStatus === "All" ||
       (filterByStatus === "Contacted" && lead.contacted) ||
       (filterByStatus === "Not Contacted" && !lead.contacted) ||
       (filterByStatus === "Follow Up" &&
         lead.contactLog?.slice(-1)[0]?.toLowerCase().includes("follow up"));
-    return byContact && byStatus;
+
+    /* search */
+    const haystack = (
+      lead.Company +
+      lead.contactName +
+      (lead.website || "")
+    ).toLowerCase();
+    const bySearch = haystack.includes(searchTerm.toLowerCase());
+
+    /* date */
+    let byDate = true;
+    if (dateRange !== "Any") {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - Number(dateRange));
+      byDate = new Date(lead.timestamp) >= cutoff;
+    }
+
+    return byStatus && bySearch && byDate;
   });
+
   return (
     <div className="outreach-container">
       <div className="outreach-header">
         <h1 className="page-title">Outreach Leads</h1>
         <div className="filters">
+          {/* --- search & date --- */}
+          <input
+            className="search-input"
+            type="text"
+            placeholder="Search company / contact"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+
           <label>
-            Contacted By:
+            Date:
             <select
-              value={filterByContactedBy}
-              onChange={(e) => setFilterByContactedBy(e.target.value)}
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value as any)}
             >
-              <option value="All">All</option>
-              <option value="Gavin">Gavin</option>
-              <option value="Riley">Riley</option>
-              <option value="Cade">Cade</option>
-              <option value="Tank">Tank</option>
+              <option value="Any">Any</option>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
             </select>
           </label>
+
+          {/* keep status filter for follow-ups */}
           <label>
             Status:
             <select
@@ -137,82 +170,105 @@ const Outreach = () => {
               <option value="Follow Up">Follow Up</option>
             </select>
           </label>
-          <button className="more-button" onClick={() => setVisibleCount(v => v + 6)}>
+
+          <button onClick={() => setVisibleCount((v) => v + 6)}>
             More Leads
           </button>
         </div>
       </div>
 
+      {/* --------- lead cards --------- */}
       <div className="lead-grid">
-        {filteredLeads.slice(0, visibleCount).map((lead) => {
-          const draft = draftLeads[lead._id] || {};
-          return (
-            <div key={lead._id} className="lead-card">
-              <h3>{lead.Company}</h3>
-              <p><strong>Contact:</strong> {lead.contactName}</p>
-              <p>
-                <strong>Email:</strong>{" "}
-                <span
-                  style={{ color: "#60a5fa", textDecoration: "underline", cursor: "pointer" }}
-                  onClick={() => openGmailPopup(lead)}
-                >
-                  {lead.website}
-                </span>
-              </p>
-              <p><strong>Phone:</strong> {lead.industry || "—"}</p>
-              <p><strong>Contacted:</strong> {lead.contacted ? "Yes" : "No"}</p>
+        {filteredLeads.slice(0, visibleCount).map((lead) => (
+          <div key={lead._id} className="lead-card">
+            <h3>{lead.Company}</h3>
+            <p>
+              <strong>Contact:</strong> {lead.contactName}
+            </p>
+            <p>
+              <strong>Email:</strong>{" "}
+              <button className="contact-btn" onClick={() => openGmailPopup(lead)}>
+                Send Email
+              </button>
+            </p>
+            <p>
+              <strong>Phone:</strong> {lead.industry || "—"}
+            </p>
+            <p>
+              <strong>Contacted:</strong> {lead.contacted ? "Yes" : "No"}
+            </p>
 
-              <label>
-                <strong>Status:</strong>
-                <select
-                  value={(draft.contacted ?? lead.contacted) ? "Contacted" : "Not Contacted"}
-                  onChange={(e) =>
-                    handleDraftChange(lead._id, "contacted", e.target.value === "Contacted")
+            {/* still editable in case you need it */}
+            <label>
+              <strong>Contacted By:</strong>
+              <select
+                value={lead.contactedBy || currentUser.name}
+                onChange={(e) =>
+                  fetch(
+                    `${import.meta.env.VITE_API_BASE_URL}/api/leads/${lead._id}`,
+                    {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ contactedBy: e.target.value }),
+                    }
+                  ).then(() => fetchLeads())
+                }
+              >
+                <option value="Gavin">Gavin</option>
+                <option value="Riley">Riley</option>
+                <option value="Cade">Cade</option>
+                <option value="Tank">Tank</option>
+              </select>
+            </label>
+
+            {lead.contactLog.length > 0 && (
+              <div>
+                <strong>Past Notes:</strong>
+                <ul>
+                  {lead.contactLog.map((entry, i) => (
+                    <li key={i}>• {entry}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <label>
+              <strong>Add Notes:</strong>
+              <textarea
+                value={notes[lead._id] || ""}
+                onChange={(e) =>
+                  setNotes({ ...notes, [lead._id]: e.target.value })
+                }
+                placeholder="Write your update here..."
+              />
+            </label>
+
+            <button
+              onClick={() =>
+                fetch(
+                  `${import.meta.env.VITE_API_BASE_URL}/api/leads/${lead._id}`,
+                  {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      contactLog: [
+                        ...lead.contactLog,
+                        notes[lead._id]?.trim() || "",
+                      ].filter(Boolean),
+                    }),
                   }
-                >
-                  <option value="Not Contacted">Not Contacted</option>
-                  <option value="Contacted">Contacted</option>
-                </select>
-              </label>
-
-              <label>
-                <strong>Contacted By:</strong>
-                <select
-                  value={draft.contactedBy ?? lead.contactedBy ?? ""}
-                  onChange={(e) => handleDraftChange(lead._id, "contactedBy", e.target.value)}
-                >
-                  <option value="">—</option>
-                  <option value="Gavin">Gavin</option>
-                  <option value="Riley">Riley</option>
-                  <option value="Cade">Cade</option>
-                  <option value="Tank">Tank</option>
-                </select>
-              </label>
-
-              {lead.contactLog.length > 0 && (
-                <div>
-                  <strong>Past Notes:</strong>
-                  <ul>
-                    {lead.contactLog.map((entry, i) => (
-                      <li key={i}>• {entry}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <label>
-                <strong>Add Notes:</strong>
-                <textarea
-                  value={notes[lead._id] || ""}
-                  onChange={(e) => setNotes({ ...notes, [lead._id]: e.target.value })}
-                  placeholder="Write your update here..."
-                />
-              </label>
-
-              <button onClick={() => handleSave({ ...lead, ...draft })}>Save</button>
-            </div>
-          );
-        })}
+                )
+                  .then(() => {
+                    setNotes((n) => ({ ...n, [lead._id]: "" }));
+                    fetchLeads();
+                  })
+                  .catch((err) => console.error(err))
+              }
+            >
+              Save Notes
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

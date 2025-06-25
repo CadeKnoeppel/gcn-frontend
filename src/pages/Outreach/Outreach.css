@@ -168,3 +168,21 @@
   background: linear-gradient(to right, #1d4ed8, #2563eb);
   transform: translateY(-1px);
 }
+.search-input {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-right: 8px;
+}
+.contact-btn {
+  background: #2563eb;
+  color: #fff;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.contact-btn:hover { opacity: .9; }
