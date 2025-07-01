@@ -1,3 +1,5 @@
+console.log("🏁 Outreach.tsx loaded, mounting component…");
+
 import React, { useEffect, useState } from "react";
 import "./Outreach.css";
 import { useLeadsContext } from "../../context/LeadsContext";
