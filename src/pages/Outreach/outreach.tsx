@@ -69,6 +69,7 @@ const Outreach = () => {
       `${import.meta.env.VITE_API_BASE_URL}/api/leads?user=${currentUser.name}&limit=50`
     );
     const data: Lead[] = await res.json();
+    console.log("🔍 [fetchLeads] got data:", data);
     setLeads(data);
   };
 
