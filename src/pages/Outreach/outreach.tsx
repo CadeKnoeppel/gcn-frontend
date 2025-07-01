@@ -4,10 +4,14 @@ import { useLeadsContext } from "../../context/LeadsContext";
 
 interface Lead {
   _id: string;
-  Company: string;
-  contactName: string;
-  website: string;          // ← holds the email today
-  industry: string;
+  firmName: string;
+  contact: string;
+  email: string;
+  phone?: string;
+  website?: string;
+  city?: string;
+  state?: string;
+  capabilities?: string;
   contacted: boolean;
   contactedBy: string;
   contactLog: string[];
@@ -46,7 +50,6 @@ Warm regards,`;
 
 const Outreach = () => {
   const { setDailyLeads } = useLeadsContext();
-
   const [leads, setLeads] = useState<Lead[]>([]);
   const [notes, setNotes] = useState<{ [id: string]: string }>({});
   const [visibleCount, setVisibleCount] = useState(6);
@@ -74,10 +77,10 @@ const Outreach = () => {
 
   /* --------- Gmail popup --------- */
   const openGmailPopup = async (lead: Lead) => {
-    const firstName = lead.contactName.split(" ")[0];
+    const firstName = lead.contact.split(" ")[0];
     const subject = encodeURIComponent("Let’s Build Something Smart Together");
     const body = encodeURIComponent(EMAIL_BODY(firstName));
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${lead.website}&su=${subject}&body=${body}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${lead.email}&su=${subject}&body=${body}`;
 
     window.open(gmailUrl, "_blank", "width=700,height=600");
 
@@ -114,9 +117,9 @@ const Outreach = () => {
 
     /* search */
     const haystack = (
-      lead.Company +
-      lead.contactName +
-      (lead.website || "")
+      lead.firmName +
+      lead.contact +
+      (lead.email || "")
     ).toLowerCase();
     const bySearch = haystack.includes(searchTerm.toLowerCase());
 
@@ -157,7 +160,6 @@ const Outreach = () => {
             </select>
           </label>
 
-          {/* keep status filter for follow-ups */}
           <label>
             Status:
             <select
@@ -171,7 +173,10 @@ const Outreach = () => {
             </select>
           </label>
 
-          <button onClick={() => setVisibleCount((v) => v + 6)}>
+          <button
+            className="more-button"
+            onClick={() => setVisibleCount((v) => v + 6)}
+          >
             More Leads
           </button>
         </div>
@@ -181,24 +186,34 @@ const Outreach = () => {
       <div className="lead-grid">
         {filteredLeads.slice(0, visibleCount).map((lead) => (
           <div key={lead._id} className="lead-card">
-            <h3>{lead.Company}</h3>
+            <h3>{lead.firmName}</h3>
             <p>
-              <strong>Contact:</strong> {lead.contactName}
+              <strong>Contact:</strong> {lead.contact}
             </p>
             <p>
               <strong>Email:</strong>{" "}
-              <button className="contact-btn" onClick={() => openGmailPopup(lead)}>
+              <button
+                className="contact-btn"
+                onClick={() => openGmailPopup(lead)}
+              >
                 Send Email
               </button>
             </p>
             <p>
-              <strong>Phone:</strong> {lead.industry || "—"}
+              <strong>Phone:</strong> {lead.phone || "—"}
             </p>
+            {lead.website && (
+              <p>
+                <strong>Website:</strong>{" "}
+                <a href={lead.website} target="_blank" rel="noopener">
+                  {lead.website}
+                </a>
+              </p>
+            )}
             <p>
               <strong>Contacted:</strong> {lead.contacted ? "Yes" : "No"}
             </p>
 
-            {/* still editable in case you need it */}
             <label>
               <strong>Contacted By:</strong>
               <select
