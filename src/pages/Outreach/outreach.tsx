@@ -46,7 +46,7 @@ With every partnership, you’ll get:
 
 If any or all of these sound like something that could help your business, reach out today and let’s build something smart together.
 
-Let's Get In Touch
+Let's Get In Touch: https://gcndigital.com/contact
 
 Warm regards,`;
 
@@ -81,7 +81,7 @@ const Outreach = () => {
   /* --------- Gmail popup --------- */
   const openGmailPopup = async (lead: Lead) => {
     const firstName = lead.contact.split(" ")[0];
-    const subject = encodeURIComponent("Let’s Build Something Smart Together");
+    const subject = encodeURIComponent("Expert Digital Marketing, None of the Overhead");
     const body = encodeURIComponent(EMAIL_BODY(firstName));
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${lead.email}&su=${subject}&body=${body}`;
 
