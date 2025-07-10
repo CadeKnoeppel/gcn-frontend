@@ -81,7 +81,7 @@ const Outreach = () => {
   /* --------- Gmail popup --------- */
   const openGmailPopup = async (lead: Lead) => {
     const firstName = lead.contact.split(" ")[0];
-    const subject = encodeURIComponent("Expert Digital Marketing, None of the Overhead");
+    const subject = encodeURIComponent("In need of a digital marketing team? We've got you.");
     const body = encodeURIComponent(EMAIL_BODY(firstName));
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${lead.email}&su=${subject}&body=${body}`;
 
